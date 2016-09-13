@@ -10,3 +10,7 @@ ProtoTypeRecv/kernel_cfg.c
 ProtoTypeRecv/cfg1_out.c
 ProtoTypeRecv/kernel_cfg.h
 ProtoTypeRecv/offset.h
+ProtoTypeSend/cfg1_out.c
+ProtoTypeSend/kernel_cfg.h
+ProtoTypeSend/kernel_cfg.c
+ProtoTypeSend/offset.h
