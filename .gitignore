@@ -1,0 +1,12 @@
+*.o
+*.d
+*.srec
+*.elf
+*.syms
+*.a
+*.timestamp
+*.bin
+ProtoTypeRecv/kernel_cfg.c
+ProtoTypeRecv/cfg1_out.c
+ProtoTypeRecv/kernel_cfg.h
+ProtoTypeRecv/offset.h
