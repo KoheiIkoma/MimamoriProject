@@ -339,7 +339,7 @@ void loop() {
 		if (cnt == 600) {
 			int pulse = 0;
 			double temp = getTemperature();
-			double humi = getHumidity()
+			double humi = getHumidity();
 
 			pushData(pulse, temp, humi);
 			cnt = 0;
