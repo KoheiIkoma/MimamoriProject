@@ -1,1 +1,0 @@
-cfg1_out.c: rca_app.cfg ../../../asp_1.9.2/arch/arm_m_gcc/common/core_timer.cfg ../../../asp_1.9.2/syssvc/banner.cfg ../../../asp_1.9.2/syssvc/logtask.cfg ../../../asp_1.9.2/syssvc/serial.cfg ../../../asp_1.9.2/syssvc/syslog.cfg ../../../asp_1.9.2/target/arduino_m0_gcc/target_serial.cfg ../../../asp_1.9.2/target/arduino_m0_gcc/target_timer.cfg ../../../lib/rca_lib.cfg 
