@@ -9,7 +9,6 @@
 #include <arduino.h>
 #include <Wire.h>
 #include "TH02.h"
-#include "pulse.h"
 
 #define LIGHT_SIG A0
 
@@ -206,6 +205,28 @@ void setup() {
 	Serial.println("setup end\r\n");
 }
 
+int pulseLoop(){
+	int i = 0;
+	int pulse = 0;
+	static int pulseSum = 0;
+	do {
+		//clock_t start,end;
+		//start = clock();
+		pulse = analogRead(LIGHT_SIG);
+		pulse = pulse / 1000;
+		pulseSum += pulse;
+		i++;
+		//end = clock();
+		//double lap = end - start;
+		//delay(0.1-lap);
+		delay(0.1);
+	} while (i<600);
+	if (pulse > 0)
+		return 1;
+	else
+		return 0;
+}
+
 void loop() {
 	int8_t ret;
 	int8_t push_ret;
@@ -213,10 +234,12 @@ void loop() {
 	DataElement elem1 = DataElement();
 
 	Serial.print("Push data to Milkcocoa : Key:PULSE, Value:");
-	int pulse = analogRead(LIGHT_SIG);
+	
+	int pulse = pulseLoop();
+	//int pulse = analogRead(LIGHT_SIG);
 	Serial.println(pulse);
 	elem1.setValue("PULSE", pulse);
-
+	
 	Serial.print("Push data to Milkcocoa : Key:TEMP, Value:");
 	th02.startTempConv();
 	th02.waitEndConversion();
@@ -224,6 +247,14 @@ void loop() {
 	double temp = th02.getLastRawTemp() / 100.0;
 	Serial.println(temp);
 	elem1.setValue("TEMP", temp);
+	
+	Serial.print("Push data to Milkcocoa : Key:HUMI, Value:");
+	th02.startRHConv();
+	th02.waitEndConversion();
+	th02.getConversionValue();
+	double humi = th02.getLastRawRH() / 100.0;
+	Serial.println(humi);
+	elem1.setValue("HUMI", humi);
 
 	do {
 		push_ret = milkcocoa.push(MILKCOCOA_DATASTORE, &elem1);
