@@ -9,6 +9,7 @@
 #include <arduino.h>
 #include <Wire.h>
 #include "TH02.h"
+#include <time.h>
 
 #define LIGHT_SIG A0
 
@@ -208,11 +209,12 @@ void setup() {
 void loop() {
 	int8_t ret;
 	int8_t push_ret;
-
+	
 	DataElement elem1 = DataElement();
 
 	Serial.print("Push data to Milkcocoa : Key:PULSE, Value:");
 	int pulse = analogRead(LIGHT_SIG);
+	pulse = pulse /100; 
 	Serial.println(pulse);
 	elem1.setValue("PULSE", pulse);
 
@@ -223,6 +225,14 @@ void loop() {
 	double temp = th02.getLastRawTemp() / 100.0;
 	Serial.println(temp);
 	elem1.setValue("TEMP", temp);
+	
+	th02.startRHConv();
+	th02.waitEndConversion();
+	th02.getConversionValue();
+	Serial.print("Push data to Milkcocoa : Key:HUMI, Value:");
+	double humi = th02.getLastRawRH() / 100.0;
+	Serial.println(humi);
+	elem1.setValue("HUMI", humi);
 
 	do {
 		push_ret = milkcocoa.push(MILKCOCOA_DATASTORE, &elem1);
@@ -235,9 +245,8 @@ void loop() {
 		}
 		delay(1000);
 	} while (push_ret != 0);
-
+	
 	Serial.println("Push success.");
-	delay(2000);
 
 //	delay(10000);
 
