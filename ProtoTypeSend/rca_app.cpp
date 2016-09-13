@@ -85,6 +85,8 @@ int i2cScan() {
 	return nDevices;
 }
 
+
+
 void setup() {
 	int ret;
 
@@ -205,25 +207,79 @@ void setup() {
 	Serial.println("setup end\r\n");
 }
 
-void loop() {
+
+
+// void loop() {
+// 	int8_t ret;
+// 	int8_t push_ret;
+//
+// 	DataElement elem1 = DataElement();
+//
+// 	Serial.print("Push data to Milkcocoa : Key:PULSE, Value:");
+// 	int pulse = analogRead(LIGHT_SIG);
+// 	Serial.println(pulse);
+// 	elem1.setValue("PULSE", pulse);
+//
+// 	Serial.print("Push data to Milkcocoa : Key:TEMP, Value:");
+// 	th02.startTempConv();
+// 	th02.waitEndConversion();
+// 	th02.getConversionValue();
+// 	double temp = th02.getLastRawTemp() / 100.0;
+// 	Serial.println(temp);
+// 	elem1.setValue("TEMP", temp);
+//
+// 	do {
+// 		push_ret = milkcocoa.push(MILKCOCOA_DATASTORE, &elem1);
+// 		if (push_ret != 0) {
+// 			Serial.println("Milkcocoa.push() error.");
+// 			Serial.println(milkcocoa.pushErrorString(push_ret));
+// 			Serial.println(push_ret);
+// 			Serial.println("Retrying MQTT push in 5 seconds...");
+// 			delay(5000);
+// 		}
+// 		delay(1000);
+// 	} while (push_ret != 0);
+//
+// 	Serial.println("Push success.");
+// 	delay(2000);
+//
+// //	delay(10000);
+//
+// 	if (Serial.available() > 0) {
+// 		Serial.read();
+// 		Serial.print("Pause  : Input any char to continue.\n\r");
+// 		while (!(Serial.available() > 0));
+// 		Serial.print("Resume.\n\r");
+// 		Serial.read();
+// 	}
+//
+//
+// }
+
+/*
+Milkcocoaへデータをプッシュする
+この関数は60秒に1回呼び出される
+*/
+void pushData(int pulse, double temp, double humi) {
 	int8_t ret;
 	int8_t push_ret;
 
 	DataElement elem1 = DataElement();
 
+	// DataElementに各センサの値をセットする
 	Serial.print("Push data to Milkcocoa : Key:PULSE, Value:");
-	int pulse = analogRead(LIGHT_SIG);
 	Serial.println(pulse);
 	elem1.setValue("PULSE", pulse);
 
 	Serial.print("Push data to Milkcocoa : Key:TEMP, Value:");
-	th02.startTempConv();
-	th02.waitEndConversion();
-	th02.getConversionValue();
-	double temp = th02.getLastRawTemp() / 100.0;
 	Serial.println(temp);
 	elem1.setValue("TEMP", temp);
 
+	Serial.print("Push data to Milkcocoa : Key:HUMI, Value:");
+	Serial.println(humi);
+	elem1.setValue("HUMI", humi);
+
+	// プッシュする
 	do {
 		push_ret = milkcocoa.push(MILKCOCOA_DATASTORE, &elem1);
 		if (push_ret != 0) {
@@ -250,4 +306,42 @@ void loop() {
 	}
 
 
+}
+
+// 温度センサから読み出した値を返す
+double getTemperature() {
+		th02.startTempConv();
+		th02.waitEndConversion();
+		th02.getConversionValue();
+		return th02.getLastRawTemp() / 100.0;
+}
+
+// 湿度センサから読み出した値を返す
+double getHumidity() {
+		th02.startRHConv();
+		th02.waitEndConversion();
+		th02.getConversionValue();
+		return th02.getLastRawRH() / 100.0;
+}
+
+
+void loop() {
+		static int cnt = 0;
+
+		/* 毎フレームの処理 */
+
+		/* 毎フレームの処理、ここまで */
+
+
+		cnt++;
+
+		// 60秒に1回の処理
+		if (cnt == 600) {
+			int pulse = 0;
+			double temp = getTemperature();
+			double humi = getHumidity()
+
+			pushData(pulse, temp, humi);
+			cnt = 0;
+		}
 }
