@@ -12,6 +12,8 @@
 
 #define LIGHT_SIG A0
 
+#define PULSE_BORDER 100
+
 #define MILKCOCOA_SERVERPORT  1883
 
 ESP8266Client wifi_client;
@@ -325,23 +327,60 @@ double getHumidity() {
 }
 
 
+double getPulse(){
+	int pulseCnt = 0;
+	int result = 0;
+	unsigned long start=0,end=0;
+	static int tmp[2] = {0};
+
+ 	do {
+ 	start = micros();
+ 	pulseCnt++;
+ 	int pulse = analogRead(LIGHT_SIG);
+ 	tmp[0] = tmp[1];
+ 	tmp[1] = pulse;
+
+ 	if ((tmp[0] < PULSE_BORDER ) && (tmp[1] > PULSE_BORDER )){
+ 		result = 1;
+ 		end = micros();
+ 		double lap = end - start;
+ 		break;
+ 		}
+ 	end = micros();
+ 	double lap = end - start;
+ 	//delayMicroseconds(500-lap);
+	} 
+	while (pulseCnt<100);
+	return result;
+}
 void loop() {
 		static int cnt = 0;
-
+		static int pulse = 0; 
+		static unsigned long start=0,end=0;
+		static double  totaltime = 0;
+		
+		start = millis();
 		/* 毎フレームの処理 */
-
+		pulse += getPulse();	
 		/* 毎フレームの処理、ここまで */
-
-
-		cnt++;
-
+		end = millis();
+		
+ 		cnt++;
+		totaltime += end - start;
+		
 		// 60秒に1回の処理
 		if (cnt == 600) {
-			int pulse = 0;
+			double weight = 60 / (totaltime/1000);
+			pulse = pulse * weight;
 			double temp = getTemperature();
 			double humi = getHumidity();
-
+			
 			pushData(pulse, temp, humi);
+			
+			pulse = 0;
 			cnt = 0;
+			start = 0;
+			end = 0;
+			totaltime = 0;
 		}
 }
