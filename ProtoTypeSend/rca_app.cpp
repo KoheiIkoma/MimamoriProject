@@ -12,6 +12,12 @@
 
 #define LIGHT_SIG A0
 
+#define IFTTT_KEY	"1XTd_bIv4-LMbVOhIL4Z5"
+#define EVENT_NAME	"test"
+
+#define HOST_NAME	"maker.ifttt.com"
+#define HOST_PORT	(80)
+
 #define PULSE_BORDER 100
 
 #define MILKCOCOA_SERVERPORT  1883
@@ -258,11 +264,7 @@ void setup() {
 //
 // }
 
-/*
-Milkcocoaへデータをプッシュする
-この関数は60秒に1回呼び出される
-*/
-void pushData(int pulse, double temp, double humi) {
+void pushData(int pulse, double temp, double humi, int state) {
 	int8_t ret;
 	int8_t push_ret;
 
@@ -280,6 +282,11 @@ void pushData(int pulse, double temp, double humi) {
 	Serial.print("Push data to Milkcocoa : Key:HUMI, Value:");
 	Serial.println(humi);
 	elem1.setValue("HUMI", humi);
+
+	Serial.print("Push data to Milkcocoa : Key:STATE, Value:");
+	Serial.println(state);
+	elem1.setValue("STATE", state);
+
 
 	// プッシュする
 	do {
@@ -326,8 +333,44 @@ double getHumidity() {
 		return th02.getLastRawRH() / 100.0;
 }
 
+// アラートが必要ならtrue
+boolean isAlertNeeded(int pulse, double temp, double humi) {
+  if (pulse == 0) {
+    return true;
+  }
 
-double getPulse(){
+  if (temp > 32 && humi > 70) {
+    return true;
+  }
+
+  return false;
+}
+
+char buffer[1024];
+const char request1[] = "GET /trigger/" EVENT_NAME "/with/key/" IFTTT_KEY "/";
+const char request2[] = " HTTP/1.1\r\nHost: " HOST_NAME "\r\nConnection: close\r\n\r\n";
+
+void sendAlertMail(int pulse, int temp, int humi) {
+
+  if (!WiFi.createTCP(HOST_NAME, HOST_PORT)) {
+    Serial.println("create tcp err");
+    return;
+  }
+
+  sprintf(buffer, "%s?value1=%d&value2=%d&value3=%d%s", request1, pulse, temp, humi, request2);
+
+  WiFi.send((const uint8_t*)buffer, strlen(buffer));
+
+  uint32_t len = WiFi.recv((uint8_t*)buffer, sizeof(buffer), 10000);
+
+
+  if (!WiFi.releaseTCP()) {
+    Serial.println("release tcp err");
+  }
+
+}
+
+int getPulse(){
 	int pulseCnt = 0;
 	int result = 0;
 	unsigned long start=0,end=0;
@@ -358,6 +401,7 @@ void loop() {
 		static int pulse = 0; 
 		static unsigned long start=0,end=0;
 		static double  totaltime = 0;
+		int state = 0;
 		
 		start = millis();
 		/* 毎フレームの処理 */
@@ -375,7 +419,12 @@ void loop() {
 			double temp = getTemperature();
 			double humi = getHumidity();
 			
-			pushData(pulse, temp, humi);
+		// Milkcocoaにデータをプッシュする
+		pushData(pulse, temp, humi, state);
+      	if (isAlertNeeded(pulse, temp, humi) == true) {
+        Serial.println("send alert");
+        // sendAlertMail(pulse, temp, humi);
+      }
 			
 			pulse = 0;
 			cnt = 0;
