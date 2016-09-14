@@ -22,9 +22,9 @@
 #define	ILLTEMP         102
 #define	ILLPULSEANDTEMP 103
 
-int illPulseTime = 0;
-int normalPulseTime = 0;
-int pulse = 0;
+int illPulseTime = 100;
+int normalPulseTime = 100;
+int pulse = 100;
 int state = ILLPULSEANDTEMP;
 
 ESP8266Client wifi_client;
@@ -202,6 +202,7 @@ void loop() {
 		Serial.print("Resume.\n\r");
 		Serial.read();
 	}
+
 	switch (state){
 		case NORMAL:
 			normal();
@@ -232,8 +233,18 @@ void onpush(DataElement *pelem) {
 		return;
 	};
 
-	illPulseTime    = (60000 / p) / 2;
-	normalPulseTime = (60000 / p) / 6;
+	Serial.print("onpush : {PULSE, ");
+	Serial.print(p);
+	Serial.println("}.");
+
+	Serial.print("onpush : {STATE, ");
+	Serial.print(s);
+	Serial.println("}.");
+
+	if(p != 0) {
+		illPulseTime    = (60000 / p) / 2;
+		normalPulseTime = (60000 / p) / 6;
+	}
 	pulse = p;
 	switch(s) {
 		case 0:
@@ -250,11 +261,4 @@ void onpush(DataElement *pelem) {
 		break;
 	}
 
-	Serial.print("onpush : {PULSE, ");
-	Serial.print(p);
-	Serial.println("}.");
-
-	Serial.print("onpush : {STATE, ");
-	Serial.print(s);
-	Serial.println("}.");
 }
