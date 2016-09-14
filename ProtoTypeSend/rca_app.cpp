@@ -13,7 +13,8 @@
 #define LIGHT_SIG A0
 
 #define IFTTT_KEY	"1XTd_bIv4-LMbVOhIL4Z5"
-#define EVENT_NAME	"error"
+#define EVENT_NAME	"test"
+
 #define HOST_NAME	"maker.ifttt.com"
 #define HOST_PORT	(80)
 
@@ -213,59 +214,11 @@ void setup() {
 }
 
 
-
-// void loop() {
-// 	int8_t ret;
-// 	int8_t push_ret;
-//
-// 	DataElement elem1 = DataElement();
-//
-// 	Serial.print("Push data to Milkcocoa : Key:PULSE, Value:");
-// 	int pulse = analogRead(LIGHT_SIG);
-// 	Serial.println(pulse);
-// 	elem1.setValue("PULSE", pulse);
-//
-// 	Serial.print("Push data to Milkcocoa : Key:TEMP, Value:");
-// 	th02.startTempConv();
-// 	th02.waitEndConversion();
-// 	th02.getConversionValue();
-// 	double temp = th02.getLastRawTemp() / 100.0;
-// 	Serial.println(temp);
-// 	elem1.setValue("TEMP", temp);
-//
-// 	do {
-// 		push_ret = milkcocoa.push(MILKCOCOA_DATASTORE, &elem1);
-// 		if (push_ret != 0) {
-// 			Serial.println("Milkcocoa.push() error.");
-// 			Serial.println(milkcocoa.pushErrorString(push_ret));
-// 			Serial.println(push_ret);
-// 			Serial.println("Retrying MQTT push in 5 seconds...");
-// 			delay(5000);
-// 		}
-// 		delay(1000);
-// 	} while (push_ret != 0);
-//
-// 	Serial.println("Push success.");
-// 	delay(2000);
-//
-// //	delay(10000);
-//
-// 	if (Serial.available() > 0) {
-// 		Serial.read();
-// 		Serial.print("Pause  : Input any char to continue.\n\r");
-// 		while (!(Serial.available() > 0));
-// 		Serial.print("Resume.\n\r");
-// 		Serial.read();
-// 	}
-//
-//
-// }
-
 /*
 Milkcocoaへデータをプッシュする
 この関数は60秒に1回呼び出される
 */
-void pushData(int pulse, double temp, double humi) {
+void pushData(int pulse, double temp, double humi, int state) {
 	int8_t ret;
 	int8_t push_ret;
 
@@ -283,6 +236,11 @@ void pushData(int pulse, double temp, double humi) {
 	Serial.print("Push data to Milkcocoa : Key:HUMI, Value:");
 	Serial.println(humi);
 	elem1.setValue("HUMI", humi);
+
+	Serial.print("Push data to Milkcocoa : Key:STATE, Value:");
+	Serial.println(state);
+	elem1.setValue("STATE", state);
+
 
 	// プッシュする
 	do {
@@ -330,36 +288,41 @@ double getHumidity() {
 }
 
 // アラートが必要ならtrue
-boolean isAlertNeeded(int pulse, int temp, int humi) {
-  if (0 == pulse) {
+boolean isAlertNeeded(int pulse, double temp, double humi) {
+  if (pulse == 0) {
     return true;
-  } else {
-    return false;
   }
+
+  if (temp > 32 && humi > 70) {
+    return true;
+  }
+
+  return false;
 }
 
 char buffer[1024];
 const char request1[] = "GET /trigger/" EVENT_NAME "/with/key/" IFTTT_KEY "/";
 const char request2[] = " HTTP/1.1\r\nHost: " HOST_NAME "\r\nConnection: close\r\n\r\n";
 
-void sendAlert(int value1, int value2, int value3) {
+void sendAlertMail(int pulse, int temp, int humi) {
 
   if (!WiFi.createTCP(HOST_NAME, HOST_PORT)) {
     Serial.println("create tcp err");
     return;
   }
 
-
-
-  sprintf(buffer, "%s?value1=%d&value2=%d&value3=%d%s", request1, value1, value2, value3, request2);
+  sprintf(buffer, "%s?value1=%d&value2=%d&value3=%d%s", request1, pulse, temp, humi, request2);
 
   WiFi.send((const uint8_t*)buffer, strlen(buffer));
 
   uint32_t len = WiFi.recv((uint8_t*)buffer, sizeof(buffer), 10000);
 
+
   if (!WiFi.releaseTCP()) {
     Serial.println("release tcp err");
   }
+
+}
 
 
 void loop() {
@@ -369,10 +332,12 @@ void loop() {
 
 		/* 毎フレームの処理、ここまで */
 
+    Serial.print(cnt);
+    Serial.println(": ");
     delay(100);
 
 		// 60秒に1回の処理
-		if (cnt < 600) {
+		if (cnt < 200) {
       cnt++;
     } else {
 			int pulse = 0;
@@ -380,10 +345,11 @@ void loop() {
 			double humi = getHumidity();
 
       // Milkcocoaにデータをプッシュする
-			pushData(pulse, temp, humi);
+			pushData(pulse, temp, humi, state);
 
-      if (isAlertNeeded(pulse, temp, humi)) {
-        sendAlert(pulse, temp, humi);
+      if (isAlertNeeded(pulse, temp, humi) == true) {
+        Serial.println("send alert");
+        // sendAlertMail(pulse, temp, humi);
       }
 
       // カウンタをリセットしておく
