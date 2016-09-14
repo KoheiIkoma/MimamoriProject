@@ -12,6 +12,11 @@
 
 #define LIGHT_SIG A0
 
+#define IFTTT_KEY	"1XTd_bIv4-LMbVOhIL4Z5"
+#define EVENT_NAME	"error"
+#define HOST_NAME	"maker.ifttt.com"
+#define HOST_PORT	(80)
+
 #define MILKCOCOA_SERVERPORT  1883
 
 ESP8266Client wifi_client;
@@ -324,6 +329,38 @@ double getHumidity() {
 		return th02.getLastRawRH() / 100.0;
 }
 
+// アラートが必要ならtrue
+boolean isAlertNeeded(int pulse, int temp, int humi) {
+  if (0 == pulse) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+char buffer[1024];
+const char request1[] = "GET /trigger/" EVENT_NAME "/with/key/" IFTTT_KEY "/";
+const char request2[] = " HTTP/1.1\r\nHost: " HOST_NAME "\r\nConnection: close\r\n\r\n";
+
+void sendAlert(int value1, int value2, int value3) {
+
+  if (!WiFi.createTCP(HOST_NAME, HOST_PORT)) {
+    Serial.println("create tcp err");
+    return;
+  }
+
+
+
+  sprintf(buffer, "%s?value1=%d&value2=%d&value3=%d%s", request1, value1, value2, value3, request2);
+
+  WiFi.send((const uint8_t*)buffer, strlen(buffer));
+
+  uint32_t len = WiFi.recv((uint8_t*)buffer, sizeof(buffer), 10000);
+
+  if (!WiFi.releaseTCP()) {
+    Serial.println("release tcp err");
+  }
+
 
 void loop() {
 		static int cnt = 0;
@@ -332,16 +369,24 @@ void loop() {
 
 		/* 毎フレームの処理、ここまで */
 
-
-		cnt++;
+    delay(100);
 
 		// 60秒に1回の処理
-		if (cnt == 600) {
+		if (cnt < 600) {
+      cnt++;
+    } else {
 			int pulse = 0;
 			double temp = getTemperature();
 			double humi = getHumidity();
 
+      // Milkcocoaにデータをプッシュする
 			pushData(pulse, temp, humi);
+
+      if (isAlertNeeded(pulse, temp, humi)) {
+        sendAlert(pulse, temp, humi);
+      }
+
+      // カウンタをリセットしておく
 			cnt = 0;
 		}
 }
