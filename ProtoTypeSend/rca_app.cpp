@@ -370,6 +370,27 @@ void sendAlertMail(int pulse, int temp, int humi) {
 
 }
 
+enum states{
+	NORMAL = 0,
+	ILLPULSE = 1,
+	ILLTEMP = 2,
+	ILLPULSEANDTEMP = 3,
+};
+
+int getState(int pulse, float temp, float humi){
+	int state = NORMAL;
+ 	if ((pulse < 60) || (pulse > 100)){
+ 		state = ILLPULSE;
+ 	}
+ 	if (((temp > 30) && (humi > 50)) || (temp > 34)){
+ 		state = ILLTEMP;
+ 	}
+ 	if (((pulse < 60) || (pulse > 100))  &&  (((temp > 30) && (humi > 50)) || (temp > 34))){
+ 		state = ILLPULSEANDTEMP;
+ 	}	
+ 	return state;
+}
+
 int getPulse(){
 	int pulseCnt = 0;
 	int result = 0;
@@ -418,6 +439,8 @@ void loop() {
 			pulse = pulse * weight;
 			double temp = getTemperature();
 			double humi = getHumidity();
+		
+		state = getState(pulse,temp,humi);
 			
 		// Milkcocoaにデータをプッシュする
 		pushData(pulse, temp, humi, state);
