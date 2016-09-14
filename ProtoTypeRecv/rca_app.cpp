@@ -21,11 +21,13 @@
 #define	ILLPULSE        101
 #define	ILLTEMP         102
 #define	ILLPULSEANDTEMP 103
+#define UNCONNECTEDNETWORK 120
 
 int illPulseTime = 100;
 int normalPulseTime = 100;
 int pulse = 100;
-int state = ILLPULSEANDTEMP;
+int state = UNCONNECTEDNETWORK;
+int count = 0;
 
 ESP8266Client wifi_client;
 
@@ -112,81 +114,93 @@ void setup() {
 }
 
 void offGreen() {
-  digitalWrite(GREEN1, HIGH);
-  digitalWrite(GREEN2, HIGH);
-  digitalWrite(GREEN3, HIGH);
+	digitalWrite(GREEN1, HIGH);
+	digitalWrite(GREEN2, HIGH);
+	digitalWrite(GREEN3, HIGH);
 }
 
 void allGreen() {
-  digitalWrite(GREEN1, LOW);
-  digitalWrite(GREEN2, LOW);
-  digitalWrite(GREEN3, LOW);
+	digitalWrite(GREEN1, LOW);
+	digitalWrite(GREEN2, LOW);
+	digitalWrite(GREEN3, LOW);
 }
 
 void allRed() {
-  digitalWrite(RED1, LOW);
-  digitalWrite(RED2, LOW);
-  digitalWrite(RED3, LOW);
-  digitalWrite(RED4, LOW);
+	digitalWrite(RED1, LOW);
+	digitalWrite(RED2, LOW);
+	digitalWrite(RED3, LOW);
+	digitalWrite(RED4, LOW);
 }
 
 void initialize() {
-  digitalWrite(VCC2_1, LOW);
-  digitalWrite(VCC2_2, LOW);
-  offGreen();
-  digitalWrite(RED1, HIGH);
-  digitalWrite(RED2, HIGH);
-  digitalWrite(RED3, HIGH);
-  digitalWrite(RED4, HIGH);
+	digitalWrite(VCC2_1, LOW);
+	digitalWrite(VCC2_2, LOW);
+	offGreen();
+	digitalWrite(RED1, HIGH);
+	digitalWrite(RED2, HIGH);
+	digitalWrite(RED3, HIGH);
+	digitalWrite(RED4, HIGH);
 }
 
 void normal() {
-  initialize();
-  delay(normalPulseTime);
-  digitalWrite(GREEN1, LOW);
-  delay(normalPulseTime);
-  digitalWrite(GREEN2, LOW);
-  delay(normalPulseTime);
-  digitalWrite(VCC2_1, HIGH);
-  digitalWrite(VCC2_2, HIGH);
-  digitalWrite(GREEN3, LOW);
-  delay(normalPulseTime);
-  digitalWrite(VCC2_1, LOW);
-  digitalWrite(VCC2_2, LOW);
-  digitalWrite(GREEN3, HIGH);
-  delay(normalPulseTime);
-  digitalWrite(GREEN2, HIGH);
-  delay(normalPulseTime);
-  initialize();
+	initialize();
+	digitalWrite(GREEN1, LOW);
+	delay(normalPulseTime);
+	digitalWrite(GREEN2, LOW);
+	delay(normalPulseTime);
+	digitalWrite(VCC2_1, HIGH);
+	digitalWrite(VCC2_2, HIGH);
+	digitalWrite(GREEN3, LOW);
+	delay(normalPulseTime);
+	digitalWrite(VCC2_1, LOW);
+	digitalWrite(VCC2_2, LOW);
+	digitalWrite(GREEN3, HIGH);
+	delay(normalPulseTime);
+	digitalWrite(GREEN2, HIGH);
+	delay(normalPulseTime);
+	initialize();
 }
 
 void illTemp() {
-  offGreen();
-  digitalWrite(VCC2_1, HIGH);
-  digitalWrite(VCC2_2, HIGH);
-  allRed();
+	offGreen();
+	digitalWrite(VCC2_1, HIGH);
+	digitalWrite(VCC2_2, HIGH);
+	allRed();
 }
 
 void illPulse() {
-  initialize();
-  delay(illPulseTime);
-  digitalWrite(VCC2_1, HIGH);
-  digitalWrite(VCC2_2, HIGH);
-  allRed();
-  delay(illPulseTime);
+	initialize();
+	delay(illPulseTime);
+	digitalWrite(VCC2_1, HIGH);
+	digitalWrite(VCC2_2, HIGH);
+	allRed();
+	delay(illPulseTime);
 }
 
 void illPulseAndTemp() {
-  digitalWrite(VCC2_1, HIGH);
-  digitalWrite(VCC2_2, HIGH);
-  allGreen();
-  allRed();
+	digitalWrite(VCC2_1, LOW);
+	digitalWrite(VCC2_2, LOW);
+	delay(illPulseTime);
+	digitalWrite(GREEN1, LOW);
+	digitalWrite(GREEN2, LOW);
+	digitalWrite(GREEN3, HIGH);
+	digitalWrite(VCC2_1, HIGH);
+	digitalWrite(VCC2_2, HIGH);
+	allRed();
+}
+
+void unConnectedNetwork() {
+	digitalWrite(VCC2_1, HIGH);
+	digitalWrite(VCC2_2, HIGH);
+	allGreen();
+	allRed();
 }
 
 void loop() {
 	int8_t ret;
 
 	while ((ret = milkcocoa.loop(1)) != 0) {
+		state = UNCONNECTEDNETWORK;
 		Serial.println("Milkcocoa.loop() connection error.");
 		Serial.println(milkcocoa.connectErrorString(ret));
 		Serial.println(ret);
@@ -202,7 +216,8 @@ void loop() {
 		Serial.print("Resume.\n\r");
 		Serial.read();
 	}
-
+	count++;
+	if (count > 600) state = UNCONNECTEDNETWORK;
 	switch (state){
 		case NORMAL:
 			normal();
@@ -216,14 +231,18 @@ void loop() {
 		case ILLPULSEANDTEMP:
 			illPulseAndTemp();
 			break;
+		case UNCONNECTEDNETWORK:
+			unConnectedNetwork();
+		break;
 		default:
 			break;
 	}
+	delay(100);
 }
 
 void onpush(DataElement *pelem) {
 	int p, s;
-
+	count = 0;
 	if (!pelem->getInt("PULSE", &p)) {
 		Serial.print("onpush : key PULSE is not found.");
 		return;
