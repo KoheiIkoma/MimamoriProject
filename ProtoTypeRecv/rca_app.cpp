@@ -5,13 +5,27 @@
 #include "Client_ESP8266.h"
 #include "../examples_gdef.h"
 
-#define LED_RED 2
-#define TOUCH_SW 3
-
-//#define MILKCOCOA_PUSH
-#define MILKCOCOA_ON
-
 #define MILKCOCOA_SERVERPORT  1883
+
+#define VCC2_1 12
+#define VCC2_2 11
+#define GREEN1 2
+#define GREEN2 3
+#define GREEN3 4
+#define RED1 6
+#define RED2 7
+#define RED3 8
+#define RED4 9
+
+#define	NORMAL          100
+#define	ILLPULSE        101
+#define	ILLTEMP         102
+#define	ILLPULSEANDTEMP 103
+
+int illPulseTime = 0;
+int normalPulseTime = 0;
+int pulse = 0;
+int state = ILLPULSEANDTEMP;
 
 ESP8266Client wifi_client;
 
@@ -26,7 +40,7 @@ void setup() {
 	int ret;
 
 	Serial.begin(115200);
-	Serial.print("Milkcocoa SDK demo");
+	Serial.print("MimaMori Recv");
 
 	// Connect to WiFi access point.
 	Serial.println(); Serial.println();
@@ -78,25 +92,98 @@ void setup() {
 		Serial.print("single err\r\n");
 	}
 
-#ifdef MILKCOCOA_ON
 	if (milkcocoa.on(MILKCOCOA_DATASTORE, "push", onpush)) {
-//	if (milkcocoa.on(MILKCOCOA_DATASTORE, "send", onpush)){
 		Serial.println("milkcocoa on sucesss");
 	} else {
 		Serial.println("milkcocoa on failure");
 	}
 
-	pinMode(LED_RED, OUTPUT);
-	digitalWrite(LED_RED, LOW);
-#endif /* MILKCOCOA_ON  */
-
-	pinMode(TOUCH_SW, INPUT);
+	pinMode(VCC2_1, OUTPUT);
+	pinMode(VCC2_2, OUTPUT);
+	pinMode(GREEN1, OUTPUT);
+	pinMode(GREEN2, OUTPUT);
+	pinMode(GREEN3, OUTPUT);
+	pinMode(RED1, OUTPUT);
+	pinMode(RED2, OUTPUT);
+	pinMode(RED3, OUTPUT);
+	pinMode(RED4, OUTPUT);
 
 	Serial.println("setup end\r\n");
 }
 
+void offGreen() {
+  digitalWrite(GREEN1, HIGH);
+  digitalWrite(GREEN2, HIGH);
+  digitalWrite(GREEN3, HIGH);
+}
+
+void allGreen() {
+  digitalWrite(GREEN1, LOW);
+  digitalWrite(GREEN2, LOW);
+  digitalWrite(GREEN3, LOW);
+}
+
+void allRed() {
+  digitalWrite(RED1, LOW);
+  digitalWrite(RED2, LOW);
+  digitalWrite(RED3, LOW);
+  digitalWrite(RED4, LOW);
+}
+
+void initialize() {
+  digitalWrite(VCC2_1, LOW);
+  digitalWrite(VCC2_2, LOW);
+  offGreen();
+  digitalWrite(RED1, HIGH);
+  digitalWrite(RED2, HIGH);
+  digitalWrite(RED3, HIGH);
+  digitalWrite(RED4, HIGH);
+}
+
+void normal() {
+  initialize();
+  delay(normalPulseTime);
+  digitalWrite(GREEN1, LOW);
+  delay(normalPulseTime);
+  digitalWrite(GREEN2, LOW);
+  delay(normalPulseTime);
+  digitalWrite(VCC2_1, HIGH);
+  digitalWrite(VCC2_2, HIGH);
+  digitalWrite(GREEN3, LOW);
+  delay(normalPulseTime);
+  digitalWrite(VCC2_1, LOW);
+  digitalWrite(VCC2_2, LOW);
+  digitalWrite(GREEN3, HIGH);
+  delay(normalPulseTime);
+  digitalWrite(GREEN2, HIGH);
+  delay(normalPulseTime);
+  initialize();
+}
+
+void illTemp() {
+  offGreen();
+  digitalWrite(VCC2_1, HIGH);
+  digitalWrite(VCC2_2, HIGH);
+  allRed();
+}
+
+void illPulse() {
+  initialize();
+  delay(illPulseTime);
+  digitalWrite(VCC2_1, HIGH);
+  digitalWrite(VCC2_2, HIGH);
+  allRed();
+  delay(illPulseTime);
+}
+
+void illPulseAndTemp() {
+  digitalWrite(VCC2_1, HIGH);
+  digitalWrite(VCC2_2, HIGH);
+  allGreen();
+  allRed();
+}
+
 void loop() {
-#ifdef MILKCOCOA_ON
 	int8_t ret;
 
 	while ((ret = milkcocoa.loop(1)) != 0) {
@@ -107,53 +194,6 @@ void loop() {
 		delay(5000);
 	}
 	Serial.print(".");
-#endif /* MILKCOCOA_ON  */
-
-#ifdef MILKCOCOA_PUSH
-	int8_t push_ret;
-	int sw_push = 0;
-	static int sw_st = 1;
-
-	switch (sw_st) {
-	case 0:
-		if (digitalRead(TOUCH_SW)) {
-			sw_push = 1;
-			sw_st = 1;
-		}
-		break;
-	default:
-		if (!digitalRead(TOUCH_SW)) {
-			sw_push = 1;
-			sw_st = 0;
-		}
-		break;
-	}
-
-	if (sw_push) {
-		DataElement elem = DataElement();
-
-		if (sw_st) {
-			Serial.println("Push data to Milkcocoa : Key:LED, Value:ON");
-			elem.setValue("LED", "ON");
-		} else {
-			Serial.println("Push data to Milkcocoa : Key:LED, Value:OFF");
-			elem.setValue("LED", "OFF");
-		}
-
-		do {
-			push_ret = milkcocoa.push(MILKCOCOA_DATASTORE, &elem);
-			if (push_ret != 0) {
-				Serial.println("Milkcocoa.push() error.");
-				Serial.println(milkcocoa.pushErrorString(push_ret));
-				Serial.println(push_ret);
-				Serial.println("Retrying MQTT push in 5 seconds...");
-				delay(5000);
-			}
-		} while (push_ret != 0);
-
-		Serial.println("Push success.");
-	}
-#endif /* MILKCOCOA_PUSH */
 
 	if (Serial.available() > 0) {
 		Serial.read();
@@ -162,76 +202,59 @@ void loop() {
 		Serial.print("Resume.\n\r");
 		Serial.read();
 	}
+	switch (state){
+		case NORMAL:
+			normal();
+			break;
+		case ILLPULSE:
+			illPulse();
+			break;
+		case ILLTEMP:
+			illTemp();
+			break;
+		case ILLPULSEANDTEMP:
+			illPulseAndTemp();
+			break;
+		default:
+			break;
+	}
 }
 
-#ifdef MILKCOCOA_ON
 void onpush(DataElement *pelem) {
-	//char *data;
-	int data_p;
-	float data_t;
-	int data_s;
-	static int ln = 0;
+	int p, s;
 
-	//if(!pelem->getString("LED", &data)) {
-	if (!pelem->getInt("PULSE", &data_p)) {
+	if (!pelem->getInt("PULSE", &p)) {
 		Serial.print("onpush : key PULSE is not found.");
 		return;
 	};
-	// Serial.println(pelem->getFloat("TEMP"));
-	if (!pelem->getFloat("TEMP", &data_t)) {
-		Serial.print("onpush : key TEMP is not found.");
-		return;
-	};
-
-	if (!pelem->getInt("STATE", &data_s)) {
+	if (!pelem->getInt("STATE", &s)) {
 		Serial.print("onpush : key STATE is not found.");
 		return;
 	};
 
+	illPulseTime    = (60000 / p) / 2;
+	normalPulseTime = (60000 / p) / 6;
+	pulse = p;
+	switch(s) {
+		case 0:
+		state = NORMAL;
+		break;
+		case 1:
+		state = ILLPULSE;
+		break;
+		case 2:
+		state = ILLTEMP;
+		break;
+		case 3:
+		state = ILLPULSEANDTEMP;
+		break;
+	}
 
 	Serial.print("onpush : {PULSE, ");
-	//Serial.write(*data_p);
-	Serial.print(data_p);
-	Serial.println("}.");
-
-	Serial.print("onpush : {TEMP, ");
-	//Serial.write(*data_t);
-	Serial.print(data_t);
+	Serial.print(p);
 	Serial.println("}.");
 
 	Serial.print("onpush : {STATE, ");
-	//Serial.write(*data_s);
-	Serial.print(data_s);
+	Serial.print(s);
 	Serial.println("}.");
-
-enum states{
-	NORMAL = 0,
-	ILLPULSE = 1,
-	ILLTEMP = 2,
-	ILLPULSEANDTEMP = 3,
-};
-
-	switch (data_s){
-		case NORMAL:
-			break;
-		case ILLPULSE:
-			break;
-		case ILLTEMP:
-			break;
-		case ILLPULSEANDTEMP:
-			break;
-	}
-	
-	/*
-	if (strcmp(data, "ON") == 0) {
-		Serial.println("LED : ON!");
-		digitalWrite(LED_RED, HIGH);
-	}
-	else if(strcmp(data, "OFF") == 0) {
-		Serial.println("LED : OFF!");
-		digitalWrite(LED_RED, LOW);
-	}
-	*/
-
 }
-#endif /* MILKCOCOA_ON */
