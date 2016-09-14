@@ -169,6 +169,7 @@ void onpush(DataElement *pelem) {
 	//char *data;
 	int data_p;
 	float data_t;
+	int data_s;
 	static int ln = 0;
 
 	//if(!pelem->getString("LED", &data)) {
@@ -182,6 +183,12 @@ void onpush(DataElement *pelem) {
 		return;
 	};
 
+	if (!pelem->getInt("STATE", &data_s)) {
+		Serial.print("onpush : key STATE is not found.");
+		return;
+	};
+
+
 	Serial.print("onpush : {PULSE, ");
 	//Serial.write(*data_p);
 	Serial.print(data_p);
@@ -192,7 +199,29 @@ void onpush(DataElement *pelem) {
 	Serial.print(data_t);
 	Serial.println("}.");
 
+	Serial.print("onpush : {STATE, ");
+	//Serial.write(*data_s);
+	Serial.print(data_s);
+	Serial.println("}.");
 
+enum states{
+	NORMAL = 0,
+	ILLPULSE = 1,
+	ILLTEMP = 2,
+	ILLPULSEANDTEMP = 3,
+};
+
+	switch (data_s){
+		case NORMAL:
+			break;
+		case ILLPULSE:
+			break;
+		case ILLTEMP:
+			break;
+		case ILLPULSEANDTEMP:
+			break;
+	}
+	
 	/*
 	if (strcmp(data, "ON") == 0) {
 		Serial.println("LED : ON!");
