@@ -279,13 +279,13 @@ void pushData(int pulse, double temp, double humi, int state) {
 	Serial.println(temp);
 	elem1.setValue("TEMP", temp);
 
-	Serial.print("Push data to Milkcocoa : Key:HUMI, Value:");
-	Serial.println(humi);
-	elem1.setValue("HUMI", humi);
-
 	Serial.print("Push data to Milkcocoa : Key:STATE, Value:");
 	Serial.println(state);
 	elem1.setValue("STATE", state);
+	
+	Serial.print("noPush data to Milkcocoa : Key:HUMI, Value:");
+	Serial.println(humi);
+	//elem1.setValue("HUMI", humi);
 
 
 	// プッシュする
