@@ -6,11 +6,11 @@
 //#define STA_SSID       "203Za-105C52"
 //#define STA_PASSWORD   "4773791a"
 
-#define STA_SSID       "GL04P-24DBAC502F07"
-#define STA_PASSWORD   "14855702"
+// #define STA_SSID       "GL04P-24DBAC502F07"
+// #define STA_PASSWORD   "14855702"
 
-//#define STA_SSID       "GL04P-24DBAC4F1F27"
-//#define STA_PASSWORD   "14521544"
+#define STA_SSID       "GL04P-24DBAC4F1F27"
+#define STA_PASSWORD   "14521544"
 
 //
 // * For Milkcocoa
@@ -33,7 +33,7 @@
 /*
  * For ThingSpeak
  */
-#define THINGSPEAK_CHANNELNUMBER 
+#define THINGSPEAK_CHANNELNUMBER
 #define THINGSPEAK_WRITEAPIKEY  ""
 
 #endif /* _WIFI_SETTING_H_ */

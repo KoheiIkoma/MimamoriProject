@@ -201,6 +201,7 @@ void loop() {
 
 	while ((ret = milkcocoa.loop(1)) != 0) {
 		state = UNCONNECTEDNETWORK;
+		unConnectedNetwork();
 		Serial.println("Milkcocoa.loop() connection error.");
 		Serial.println(milkcocoa.connectErrorString(ret));
 		Serial.println(ret);
@@ -217,7 +218,7 @@ void loop() {
 		Serial.read();
 	}
 	count++;
-	if (count > 600) state = UNCONNECTEDNETWORK;
+	if (count > 30) state = UNCONNECTEDNETWORK;
 	switch (state){
 		case NORMAL:
 			normal();
